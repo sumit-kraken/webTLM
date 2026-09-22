@@ -1,0 +1,937 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>webLTM</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  /* webLTM is deliberately single-theme: a page about latent, unlit
+     reasoning is drawn as one committed dark world rather than toggled
+     light/dark, per the "one visual world" allowance. Everything below
+     is painted explicitly rather than derived from prefers-color-scheme. */
+  :root {
+    --bg: #0b0d14;
+    --surface: #12151f;
+    --surface-2: #171b29;
+    --border: #262b3d;
+    --border-soft: #1b1f2d;
+    --text-primary: #e9eaf2;
+    --text-secondary: #9195ab;
+    --text-muted: #5d6178;
+    --accent: #8a6bff;
+    --accent-soft: rgba(138, 107, 255, 0.14);
+    --accent-line: rgba(138, 107, 255, 0.35);
+    --good: #34d399;
+    --good-soft: rgba(52, 211, 153, 0.14);
+    --bad: #f87171;
+    --bad-soft: rgba(248, 113, 113, 0.14);
+    /* sequential blue ramp, light->dark = easy->hard (validated ordinal,
+       dark surface #0b0d14) */
+    --s1: #9ec5f4;
+    --s2: #6da7ec;
+    --s3: #3987e5;
+    --s4: #256abf;
+    --s5: #184f95;
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text-primary);
+    font-family: "IBM Plex Sans", system-ui, sans-serif;
+    padding: 0 20px;
+  }
+  .wrap { max-width: 800px; margin: 0 auto; padding-block: 56px 80px; }
+
+  h1, h2, h3 { font-family: "Sora", system-ui, sans-serif; text-wrap: balance; margin: 0; }
+  .mono { font-family: "JetBrains Mono", ui-monospace, monospace; }
+  a { color: var(--accent); }
+
+  .crumbs { display: flex; gap: 8px; align-items: center; font-family: "JetBrains Mono", monospace; font-size: 12.5px; color: var(--text-muted); margin-bottom: 34px; flex-wrap: wrap; }
+  .crumbs a { color: var(--text-secondary); text-decoration: none; }
+  .crumbs a:hover { color: var(--accent); }
+
+  /* ---------- hero ---------- */
+  .eyebrow {
+    font-family: "JetBrains Mono", monospace;
+    font-size: 12.5px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--accent);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 18px;
+  }
+  .eyebrow .dot {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-soft);
+  }
+  h1.title { font-size: clamp(34px, 6vw, 48px); font-weight: 700; letter-spacing: -0.01em; line-height: 1.05; }
+  .subtitle { margin-top: 16px; font-size: 17px; line-height: 1.55; color: var(--text-secondary); max-width: 62ch; }
+  .subtitle b { color: var(--text-primary); font-weight: 600; }
+  .meta-row {
+    margin-top: 22px; display: flex; gap: 18px; flex-wrap: wrap;
+    font-family: "JetBrains Mono", monospace; font-size: 12.5px; color: var(--text-muted);
+  }
+  .meta-row span b { color: var(--text-secondary); font-weight: 500; }
+
+  /* ---------- sections ---------- */
+  section { margin-top: 56px; }
+  .section-head { display: flex; align-items: baseline; gap: 10px; margin-bottom: 18px; }
+  .section-head .idx { font-family: "JetBrains Mono", monospace; color: var(--text-muted); font-size: 13px; }
+  .section-head h2 { font-size: 21px; font-weight: 600; }
+  .lede { color: var(--text-secondary); font-size: 15px; line-height: 1.6; max-width: 66ch; margin: 0 0 20px; }
+
+  /* ---------- card ---------- */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 28px;
+  }
+
+  /* ---------- demo ---------- */
+  .demo-row { display: flex; gap: 12px; flex-wrap: wrap; align-items: flex-end; }
+  .field { display: flex; flex-direction: column; gap: 6px; }
+  .field label { font-size: 12px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; }
+  .field input[type="number"] {
+    width: 130px; background: var(--surface-2); border: 1px solid var(--border);
+    color: var(--text-primary); font-family: "JetBrains Mono", monospace; font-size: 16px;
+    border-radius: 8px; padding: 10px 12px; font-variant-numeric: tabular-nums;
+  }
+  .field input[type="number"]:focus { outline: 2px solid var(--accent-line); border-color: var(--accent); }
+  .plus-sign { font-family: "JetBrains Mono", monospace; font-size: 20px; color: var(--text-muted); padding-bottom: 10px; }
+
+  .depth-field { flex: 1; min-width: 220px; }
+  .depth-field .depth-label-row { display: flex; justify-content: space-between; font-size: 12px; color: var(--text-muted); }
+  .depth-field .depth-label-row b { color: var(--accent); font-family: "JetBrains Mono", monospace; font-weight: 600; }
+  input[type="range"] { width: 100%; accent-color: var(--accent); margin-top: 8px; }
+
+  .think-btn {
+    background: var(--accent); color: #0b0d14; border: none; border-radius: 8px;
+    font-family: "Sora", sans-serif; font-weight: 600; font-size: 15px;
+    padding: 12px 22px; cursor: pointer; height: 42px;
+  }
+  .think-btn:hover { filter: brightness(1.08); }
+  .think-btn:disabled { opacity: 0.5; cursor: default; }
+
+  /* ---------- presets ---------- */
+  .presets-row {
+    margin-top: 18px;
+    padding-top: 16px;
+    border-top: 1px solid var(--border-soft);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  .preset-label {
+    font-size: 11.5px;
+    color: var(--text-muted);
+    font-family: "JetBrains Mono", monospace;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+  .preset-chips {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .preset-chip {
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 6px 12px;
+    color: var(--text-primary);
+    font-family: "JetBrains Mono", monospace;
+    font-size: 12.5px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.15s ease;
+  }
+  .preset-chip:hover {
+    border-color: var(--accent);
+    background: var(--surface);
+    transform: translateY(-1px);
+  }
+  .preset-chip .chip-badge {
+    font-size: 10px;
+    text-transform: uppercase;
+    padding: 2px 6px;
+    border-radius: 4px;
+    letter-spacing: 0.04em;
+    font-weight: 600;
+  }
+  .chip-badge.red { background: rgba(248, 113, 113, 0.16); color: #f87171; }
+  .chip-badge.amber { background: rgba(251, 191, 70, 0.16); color: #fbbf46; }
+  .chip-badge.violet { background: rgba(138, 107, 255, 0.16); color: #a78bfa; }
+  .chip-badge.green { background: rgba(52, 211, 153, 0.16); color: #34d399; }
+
+  .result-area { margin-top: 24px; min-height: 108px; display: flex; flex-direction: column; align-items: stretch; gap: 18px; }
+  .thinking {
+    display: flex; align-items: center; gap: 14px;
+    font-family: "JetBrains Mono", monospace; color: var(--text-secondary); font-size: 14px;
+  }
+  .thinking-meta { display: flex; flex-direction: column; gap: 4px; }
+  .live-probe-note { font-size: 12px; color: var(--text-muted); }
+  .live-probe-note .highlight-probe { color: var(--accent); font-weight: 600; }
+  .pulse-ring {
+    width: 34px; height: 34px; border-radius: 50%;
+    border: 2px solid var(--accent-line);
+    display: flex; align-items: center; justify-content: center;
+    position: relative; flex: none;
+  }
+  .pulse-ring::before {
+    content: ""; position: absolute; inset: -6px; border-radius: 50%;
+    border: 2px solid var(--accent); opacity: 0; animation: pulseOut 0.9s ease-out infinite;
+  }
+  @media (prefers-reduced-motion: reduce) { .pulse-ring::before { animation: none; } }
+  @keyframes pulseOut {
+    0% { transform: scale(0.6); opacity: 0.55; }
+    100% { transform: scale(1.5); opacity: 0; }
+  }
+  .pulse-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); }
+
+  .answer-box { display: flex; align-items: center; gap: 18px; flex-wrap: wrap; }
+  .answer-figure {
+    font-family: "JetBrains Mono", monospace; font-size: 34px; font-weight: 600;
+    font-variant-numeric: tabular-nums; letter-spacing: 0.01em;
+  }
+  .answer-figure.good { color: var(--good); }
+  .answer-figure.bad { color: var(--bad); }
+  .answer-caption { font-size: 13px; color: var(--text-muted); }
+  .status-chip {
+    font-family: "JetBrains Mono", monospace; font-size: 12px; font-weight: 600;
+    padding: 4px 10px; border-radius: 999px; letter-spacing: 0.03em;
+  }
+  .status-chip.good { background: var(--good-soft); color: var(--good); }
+  .status-chip.bad { background: var(--bad-soft); color: var(--bad); }
+  .placeholder-note { color: var(--text-muted); font-size: 14px; }
+
+  /* ---------- trajectory & intermediate readout ---------- */
+  .trajectory-card {
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
+    width: 100%;
+  }
+  .trajectory-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-bottom: 4px;
+  }
+  .traj-title {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .probe-badge {
+    background: var(--accent-soft);
+    color: var(--accent);
+    font-family: "JetBrains Mono", monospace;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: 3px 8px;
+    border-radius: 6px;
+    border: 1px solid var(--accent-line);
+  }
+  .trajectory-head h4 {
+    margin: 0;
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text-primary);
+  }
+  .traj-legend {
+    display: flex;
+    gap: 14px;
+    font-family: "JetBrains Mono", monospace;
+    font-size: 11.5px;
+    color: var(--text-muted);
+  }
+  .traj-leg-item { display: flex; align-items: center; gap: 5px; }
+  .dot-diff { width: 8px; height: 8px; border-radius: 50%; background: #fbbf46; }
+  .dot-match { width: 8px; height: 8px; border-radius: 50%; background: var(--good); }
+  .traj-desc {
+    font-size: 13px;
+    color: var(--text-secondary);
+    line-height: 1.5;
+    margin: 6px 0 16px;
+  }
+  .steps-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    max-height: 320px;
+    overflow-y: auto;
+    padding-right: 4px;
+  }
+  .steps-list::-webkit-scrollbar { width: 6px; }
+  .steps-list::-webkit-scrollbar-track { background: var(--surface); border-radius: 3px; }
+  .steps-list::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+  .steps-list::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
+
+  .step-row {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 8px 12px;
+    border-radius: 8px;
+    background: var(--surface);
+    border: 1px solid var(--border-soft);
+    font-size: 13px;
+    transition: background 0.15s;
+  }
+  .step-row.is-final {
+    border-color: var(--accent-line);
+    background: rgba(138, 107, 255, 0.05);
+  }
+  .step-row.is-solved {
+    border-color: rgba(52, 211, 153, 0.35);
+  }
+  .step-meta {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 195px;
+  }
+  .step-badge {
+    font-size: 11.5px;
+    font-weight: 600;
+    color: var(--text-primary);
+  }
+  .step-status-icon {
+    font-size: 11px;
+    font-family: "JetBrains Mono", monospace;
+  }
+  .step-status-icon.match { color: var(--good); font-weight: 600; }
+  .step-status-icon.pending { color: var(--text-muted); }
+
+  .step-visual {
+    display: flex;
+    gap: 4px;
+    letter-spacing: 0.1em;
+    font-size: 14px;
+    font-weight: 600;
+  }
+  .digit-char {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 24px;
+    border-radius: 4px;
+    background: var(--surface-2);
+    color: var(--text-secondary);
+    transition: all 0.2s ease;
+  }
+  .digit-char.dimmed-zero {
+    opacity: 0.22;
+    color: var(--text-muted);
+  }
+  .digit-char.diff {
+    background: rgba(251, 191, 70, 0.25);
+    color: #fbbf46;
+    font-weight: 700;
+    box-shadow: 0 0 0 1px rgba(251, 191, 70, 0.6), 0 0 6px rgba(251, 191, 70, 0.25);
+    transform: scale(1.06);
+  }
+  .step-row.is-solved .digit-char {
+    color: var(--good);
+  }
+  .step-row.is-solved .digit-char.diff {
+    background: rgba(52, 211, 153, 0.25);
+    color: var(--good);
+    box-shadow: 0 0 0 1px rgba(52, 211, 153, 0.6), 0 0 6px rgba(52, 211, 153, 0.25);
+  }
+  .step-num-val {
+    font-size: 13px;
+    color: var(--text-primary);
+    min-width: 80px;
+  }
+
+  .steps-column-header {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 6px 12px;
+    font-family: "JetBrains Mono", monospace;
+    font-size: 11px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    border-bottom: 1px solid var(--border-soft);
+    margin-bottom: 4px;
+  }
+  .step-meta-hdr { min-width: 195px; }
+  .step-visual-hdr { display: flex; gap: 4px; }
+  .step-visual-hdr span { width: 20px; text-align: center; font-size: 10px; color: var(--accent); opacity: 0.8; }
+  .step-val-hdr { min-width: 80px; }
+  .step-note-hdr { flex: 1; }
+
+  .carry-action-badge {
+    font-family: "JetBrains Mono", monospace;
+    font-size: 11px;
+    padding: 2px 8px;
+    border-radius: 4px;
+    white-space: nowrap;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .carry-action-badge.initial {
+    background: rgba(145, 149, 171, 0.1);
+    color: var(--text-muted);
+    border: 1px solid rgba(145, 149, 171, 0.2);
+  }
+  .carry-action-badge.propagating {
+    background: rgba(251, 191, 70, 0.16);
+    color: #fbbf46;
+    border: 1px solid rgba(251, 191, 70, 0.4);
+    font-weight: 600;
+  }
+  .carry-action-badge.solved {
+    background: rgba(52, 211, 153, 0.16);
+    color: var(--good);
+    border: 1px solid rgba(52, 211, 153, 0.4);
+    font-weight: 600;
+  }
+  .carry-action-badge.stable {
+    background: transparent;
+    color: var(--text-muted);
+    opacity: 0.6;
+  }
+
+  /* ---------- chart ---------- */
+  .chart-card .card-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; flex-wrap: wrap; margin-bottom: 6px; }
+  .chart-card .card-head h3 { font-size: 15px; font-weight: 600; }
+  .chart-card .card-head p { margin: 4px 0 0; font-size: 13px; color: var(--text-muted); max-width: 44ch; }
+  .legend { display: flex; gap: 14px; flex-wrap: wrap; font-family: "JetBrains Mono", monospace; font-size: 12px; color: var(--text-secondary); }
+  .legend .key { display: flex; align-items: center; gap: 6px; }
+  .legend .swatch { width: 12px; height: 2px; border-radius: 1px; }
+  .chart-wrap { overflow-x: auto; margin-top: 14px; }
+  svg.chart { width: 100%; height: auto; min-width: 520px; display: block; }
+  svg.chart text { fill: var(--text-muted); font-family: "JetBrains Mono", monospace; font-size: 11px; }
+  svg.chart .axis-line { stroke: var(--border); stroke-width: 1; }
+  svg.chart .gridline { stroke: var(--border-soft); stroke-width: 1; }
+  .tooltip {
+    position: absolute; pointer-events: none; background: var(--surface-2);
+    border: 1px solid var(--border); border-radius: 8px; padding: 8px 10px;
+    font-family: "JetBrains Mono", monospace; font-size: 12px; color: var(--text-primary);
+    transform: translate(-50%, -110%); white-space: nowrap; opacity: 0; transition: opacity 0.1s;
+  }
+  .chart-shell { position: relative; }
+
+  /* ---------- architecture ---------- */
+  .arch-diagram { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 18px; }
+  .arch-box {
+    background: var(--surface-2); border: 1px solid var(--border); border-radius: 10px;
+    padding: 14px 16px; min-width: 120px; text-align: center;
+  }
+  .arch-box .name { font-family: "JetBrains Mono", monospace; font-size: 13px; font-weight: 600; color: var(--text-primary); }
+  .arch-box .desc { font-size: 11.5px; color: var(--text-muted); margin-top: 4px; }
+  .arch-box.core { border-color: var(--accent-line); background: var(--accent-soft); position: relative; }
+  .arch-box.core .name { color: var(--accent); }
+  .arch-loop {
+    font-family: "JetBrains Mono", monospace; font-size: 11px; color: var(--accent);
+    display: flex; flex-direction: column; align-items: center; gap: 2px;
+  }
+  .arch-arrow { color: var(--text-muted); font-size: 18px; }
+  .arch-note { font-size: 13px; color: var(--text-secondary); line-height: 1.6; }
+  .arch-note code { background: var(--surface-2); padding: 1px 6px; border-radius: 4px; color: var(--accent); font-size: 12.5px; }
+
+  /* ---------- footer ---------- */
+  footer { margin-top: 70px; border-top: 1px solid var(--border); padding-top: 22px; }
+  footer p { font-size: 13px; color: var(--text-muted); line-height: 1.6; max-width: 66ch; }
+  footer .links { margin-top: 10px; font-family: "JetBrains Mono", monospace; font-size: 12.5px; display: flex; gap: 18px; flex-wrap: wrap; }
+
+  @media (max-width: 480px) {
+    .demo-row { flex-direction: column; align-items: stretch; }
+    .plus-sign { display: none; }
+    .answer-figure { font-size: 26px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+
+  <div class="crumbs"><a href="../">webTLM demos</a> <span>/</span> <span style="color:var(--text-secondary)">webLTM (opaque)</span> <span>/</span> <a href="../monitor/">Visible Thinking</a> <span>/</span> <a href="../retrofit/">Real Retrofit &rarr;</a></div>
+
+  <div class="eyebrow"><span class="dot"></span>recurrent-depth transformer &middot; runs entirely in this tab</div>
+  <h1 class="title">webLTM</h1>
+  <p class="subtitle">
+    A 600&nbsp;KB model that answers by <b>looping a single block in latent space</b>
+    instead of writing out its reasoning. Turn the depth knob up and it thinks
+    longer &mdash; you'll never see a single token of that thinking, only the
+    loop counter ticking and the final digits landing. That's not a UI
+    choice: the architecture has no chain-of-thought channel to expose.
+  </p>
+  <div class="meta-row">
+    <span><b>153K</b> params</span>
+    <span><b>3</b> transformer blocks (prelude / core / coda)</span>
+    <span><b>597&nbsp;KB</b> weights</span>
+    <span>no WebGPU, no download &mdash; plain JS</span>
+  </div>
+
+  <section>
+    <div class="section-head"><span class="idx">01</span><h2>Give it a sum</h2></div>
+    <p class="lede">Two numbers up to 5 digits each. The model never sees an intermediate
+      carry, a scratchpad, or a reasoning token &mdash; only the input digits and, after
+      <span class="mono" style="color:var(--text-secondary)">r</span> loops, the output digits.</p>
+
+    <div class="card">
+      <div class="demo-row">
+        <div class="field">
+          <label for="opA">A</label>
+          <input id="opA" type="number" min="0" max="99999" value="4821" />
+        </div>
+        <div class="plus-sign">+</div>
+        <div class="field">
+          <label for="opB">B</label>
+          <input id="opB" type="number" min="0" max="99999" value="367" />
+        </div>
+        <div class="field depth-field">
+          <div class="depth-label-row"><span>thinking depth</span><b id="depthVal">8</b></div>
+          <input id="depthSlider" type="range" min="1" max="24" value="8" />
+        </div>
+        <button class="think-btn" id="thinkBtn">Think</button>
+      </div>
+
+      <div class="presets-row">
+        <span class="preset-label">Carry Presets:</span>
+        <div class="preset-chips">
+          <button type="button" class="preset-chip" data-a="4999" data-b="1" data-r="4" title="Watch 5990 in Loop 1 cascade into 5000 in Loop 2 as carries ripple across 3 positions">
+            <span class="chip-badge red">Cascade</span>
+            <b>4999 + 1 = 5000</b>
+          </button>
+          <button type="button" class="preset-chip" data-a="19" data-b="83" data-r="4" title="Watch 192 in Loop 1 propagate tens carry into 102 in Loop 2">
+            <span class="chip-badge amber">Tens &rarr; 100s</span>
+            <b>19 + 83 = 102</b>
+          </button>
+          <button type="button" class="preset-chip" data-a="4821" data-b="367" data-r="8" title="Needs 3 loops to resolve the carry in the tens column (5288 -> 5188)">
+            <span class="chip-badge violet">Deep Carry (Loop 3)</span>
+            <b>4821 + 367 = 5188</b>
+          </button>
+          <button type="button" class="preset-chip" data-a="12345" data-b="54321" data-r="2" title="Zero carries needed — already solved at Loop 2">
+            <span class="chip-badge green">0 Carries</span>
+            <b>12345 + 54321</b>
+          </button>
+        </div>
+      </div>
+
+      <div class="result-area" id="resultArea">
+        <p class="placeholder-note">Loading 153K trained parameters&hellip;</p>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="section-head"><span class="idx">02</span><h2>Does more looping actually help?</h2></div>
+    <p class="lede">Exact-match accuracy on held-out problems, by loop count and by how many
+      digits the problem has. Trained only up to depth 8 (dashed) &mdash; past that the
+      model is extrapolating, and you can see exactly where it stops paying off.</p>
+
+    <div class="card chart-card">
+      <div class="card-head">
+        <div>
+          <h3>Accuracy vs. thinking depth</h3>
+          <p>Harder (longer) problems need more loops before they saturate;
+            easy ones peak almost immediately.</p>
+        </div>
+        <div class="legend" id="legend"></div>
+      </div>
+      <div class="chart-shell">
+        <div class="chart-wrap"><svg class="chart" id="chart" viewBox="0 0 720 320" preserveAspectRatio="xMinYMin meet"></svg></div>
+        <div class="tooltip" id="tooltip"></div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="section-head"><span class="idx">03</span><h2>How it's built</h2></div>
+    <div class="card">
+      <div class="arch-diagram">
+        <div class="arch-box"><div class="name">prelude</div><div class="desc">embed digits, run once</div></div>
+        <div class="arch-arrow">&rarr;</div>
+        <div class="arch-box core">
+          <div class="name">core</div>
+          <div class="desc">re-run r&times;, latent state only</div>
+        </div>
+        <div class="arch-loop">&#8635; &times;r</div>
+        <div class="arch-arrow">&rarr;</div>
+        <div class="arch-box"><div class="name">coda</div><div class="desc">read out digits, once</div></div>
+      </div>
+      <p class="arch-note">
+        The prelude embeds the input once. The <b style="color:var(--accent)">core</b>
+        block then re-reads its own previous state <code>r</code> times &mdash; the
+        original embedding is re-injected at every pass so the state doesn't drift as
+        <code>r</code> grows, the trick that lets one set of weights work at any test-time
+        depth. Only the coda's single pass is ever turned into logits. There is no
+        step in between where a token could leak out, because no step in between
+        produces tokens at all &mdash; the answer is predicted all at once, not
+        word-by-word.
+      </p>
+    </div>
+  </section>
+
+  <footer>
+    <p>
+      This is a hobby-scale replica of an idea, not of OpenAI's Astra: Astra's
+      "opaque recurrence" (per <a href="https://techcrunch.com/2026/09/03/openai-launches-astra-its-powerful-and-controversial-new-model/" target="_blank" rel="noopener">TechCrunch's reporting</a>)
+      is an undisclosed, frontier-scale system, and the controversy around it is
+      about chain-of-thought monitorability disappearing at that scale. webLTM is
+      153K parameters doing addition &mdash; small enough to read every line of
+      the loop, on purpose, since the whole point here is to make the mechanism
+      legible rather than opaque.
+    </p>
+    <div class="links">
+      <span class="mono"><a href="https://github.com/vishalmysore/webTLM">repo: github.com/vishalmysore/webTLM</a></span>
+      <span class="mono"><a href="https://huggingface.co/VishalMysore/webLTM">weights: huggingface.co/VishalMysore/webLTM</a></span>
+      <span class="mono"><a href="../monitor/">compare: Visible Thinking (7B, un-hidden CoT) &rarr;</a></span>
+      <span class="mono"><a href="../retrofit/">compare: Real Retrofit (SmolLM2-135M) &rarr;</a></span>
+    </div>
+  </footer>
+</div>
+
+<script src="model.js"></script>
+<script>
+(function () {
+  "use strict";
+
+  var GRID = {"1": {"1": 1.0, "2": 1.0, "4": 1.0, "8": 1.0, "16": 0.97, "24": 0.7433}, "2": {"1": 0.8533, "2": 0.9233, "4": 0.93, "8": 0.9167, "16": 0.7867, "24": 0.62}, "3": {"1": 0.7467, "2": 0.8133, "4": 0.84, "8": 0.82, "16": 0.67, "24": 0.51}, "4": {"1": 0.6267, "2": 0.67, "4": 0.69, "8": 0.7033, "16": 0.55, "24": 0.29}, "5": {"1": 0.5567, "2": 0.5933, "4": 0.6233, "8": 0.61, "16": 0.4533, "24": 0.26}};
+  var R_VALUES = [1, 2, 4, 8, 16, 24];
+  var DIGIT_VALUES = [1, 2, 3, 4, 5];
+  var SEQ_COLORS = { 1: "var(--s1)", 2: "var(--s2)", 3: "var(--s3)", 4: "var(--s4)", 5: "var(--s5)" };
+  var SEQ_HEX = { 1: "#9ec5f4", 2: "#6da7ec", 3: "#3987e5", 4: "#256abf", 5: "#184f95" };
+
+  // ---------------- model loading ----------------
+  var model = null;
+  var depthSlider = document.getElementById("depthSlider");
+  var depthVal = document.getElementById("depthVal");
+  var thinkBtn = document.getElementById("thinkBtn");
+  var resultArea = document.getElementById("resultArea");
+  var opA = document.getElementById("opA");
+  var opB = document.getElementById("opB");
+
+  depthSlider.addEventListener("input", function () { depthVal.textContent = depthSlider.value; });
+
+  function b64ToBuffer(b64) {
+    var bin = atob(b64);
+    var buf = new Uint8Array(bin.length);
+    for (var i = 0; i < bin.length; i++) buf[i] = bin.charCodeAt(i);
+    return buf.buffer;
+  }
+
+  function loadWeightsBuffer() {
+    // plain binary works on any static host (e.g. GitHub Pages); the
+    // base64 .txt fallback is for hosts that only serve a fixed set of
+    // content-types (some artifact previews) and don't allow .bin.
+    return fetch("weights.bin").then(function (r) {
+      if (!r.ok) throw new Error("no weights.bin");
+      return r.arrayBuffer();
+    }).catch(function () {
+      return fetch("weights.b64.txt").then(function (r) { return r.text(); }).then(b64ToBuffer);
+    });
+  }
+
+  Promise.all([
+    fetch("manifest.json").then(function (r) { return r.json(); }),
+    loadWeightsBuffer()
+  ]).then(function (res) {
+    model = { manifest: res[0], buffer: res[1] };
+    resultArea.innerHTML = '<p class="placeholder-note">Ready. Pick two numbers and press Think.</p>';
+    thinkBtn.disabled = false;
+    runDemo(); // show an example result immediately, at rest
+  }).catch(function (err) {
+    resultArea.innerHTML = '<p class="placeholder-note">Could not load weights.bin / manifest.json &mdash; open this page from its own folder (not file://) or via the hosted demo.</p>';
+    console.error(err);
+  });
+  thinkBtn.disabled = true;
+
+  function clampOperand(v) {
+    v = Math.max(0, Math.min(99999, Math.floor(Number(v) || 0)));
+    return v;
+  }
+
+  function runDemo() {
+    if (!model) return;
+    var a = clampOperand(opA.value);
+    var b = clampOperand(opB.value);
+    var r = parseInt(depthSlider.value, 10);
+    var trueSum = a + b;
+
+    thinkBtn.disabled = true;
+    var ids = tokenizeProblem(model.manifest, a, b);
+    var out = runModel(model, ids, r);
+
+    var tick = 0;
+    resultArea.innerHTML =
+      '<div class="thinking">' +
+        '<div class="pulse-ring"><div class="pulse-dot"></div></div>' +
+        '<div class="thinking-meta">' +
+          '<div id="thinkLabel">looping in latent space&hellip; <b class="mono" id="tickCount">0</b> / ' + r + '</div>' +
+          '<div class="live-probe-note mono" id="liveProbe">probed: &hellip;</div>' +
+        '</div>' +
+      '</div>';
+    var tickCount = document.getElementById("tickCount");
+    var liveProbe = document.getElementById("liveProbe");
+
+    var stepMs = r <= 8 ? 90 : 45;
+    var timer = setInterval(function () {
+      tick++;
+      if (tickCount) tickCount.textContent = String(Math.min(tick, r));
+      if (liveProbe && out.steps && out.steps[tick]) {
+        var currentStep = out.steps[tick];
+        var isMatch = parseInt(currentStep.value || "0", 10) === trueSum;
+        liveProbe.innerHTML = 'probed state: <span class="highlight-probe">' + currentStep.rawDigits + '</span> (' + (isMatch ? 'carry resolved!' : 'propagating carries...') + ')';
+      }
+      if (tick >= r) {
+        clearInterval(timer);
+        setTimeout(function () { reveal(a, b, r, trueSum, out); }, 120);
+      }
+    }, stepMs);
+  }
+
+  function reveal(a, b, r, trueSum, out) {
+    if (!out) {
+      var ids = tokenizeProblem(model.manifest, a, b);
+      out = runModel(model, ids, r);
+    }
+    var predStr = digitsToNumber(model.manifest, out.answerDigits) || "0";
+    var pred = parseInt(predStr, 10);
+    var correct = pred === trueSum;
+
+    var answerBoxHtml =
+      '<div class="answer-box">' +
+        '<div>' +
+          '<div class="answer-figure ' + (correct ? "good" : "bad") + '">' + pred.toLocaleString() + '</div>' +
+          '<div class="answer-caption">' + a.toLocaleString() + ' + ' + b.toLocaleString() + ' = ' + pred.toLocaleString() + ' &middot; loop depth ' + r + '</div>' +
+        '</div>' +
+        '<div class="status-chip ' + (correct ? "good" : "bad") + '">' + (correct ? "CORRECT" : "true sum: " + trueSum.toLocaleString()) + '</div>' +
+      '</div>';
+
+    var COL_NAMES = ["100k", "10k", "1k", "100s", "10s", "1s"];
+
+    function getCarryNote(prevDigits, currDigits, isSolved, stepNum) {
+      if (stepNum === 0) {
+        return '<span class="carry-action-badge initial">Initial Prelude Embedding</span>';
+      }
+      if (!prevDigits) return '';
+      var changedCols = [];
+      var diffs = [];
+      for (var i = 0; i < currDigits.length; i++) {
+        if (prevDigits[i] !== currDigits[i]) {
+          changedCols.push(COL_NAMES[i]);
+          diffs.push(COL_NAMES[i] + ': ' + prevDigits[i] + '&rarr;' + currDigits[i]);
+        }
+      }
+      if (changedCols.length === 0) {
+        if (isSolved) return '<span class="carry-action-badge solved">&#10003; Solved (stable)</span>';
+        return '<span class="carry-action-badge stable">&bull; Stable state</span>';
+      }
+      if (isSolved) {
+        return '<span class="carry-action-badge solved">&#9889; Carry resolved! (' + diffs.join(', ') + ')</span>';
+      }
+      return '<span class="carry-action-badge propagating">&#9889; Carry propagating (' + diffs.join(', ') + ')</span>';
+    }
+
+    var trajectoryHtml = '<div class="trajectory-card">' +
+      '<div class="trajectory-head">' +
+        '<div class="traj-title">' +
+          '<span class="probe-badge">Latent Probe</span>' +
+          '<h4>Intermediate Readout Across Recurrence Depth</h4>' +
+        '</div>' +
+        '<div class="traj-legend">' +
+          '<span class="traj-leg-item"><span class="dot-diff"></span> updated digit</span>' +
+          '<span class="traj-leg-item"><span class="dot-match"></span> match</span>' +
+        '</div>' +
+      '</div>' +
+      '<p class="traj-desc">' +
+        'Linear probe (<span class="mono">coda &rarr; head</span>) decoded at each core iteration. Watch how carry cascades propagate right-to-left across columns:' +
+      '</p>' +
+      '<div class="steps-column-header">' +
+        '<div class="step-meta-hdr">Depth &amp; Status</div>' +
+        '<div class="step-visual-hdr mono">' +
+          '<span>100k</span><span>10k</span><span>1k</span><span>100s</span><span>10s</span><span>1s</span>' +
+        '</div>' +
+        '<div class="step-val-hdr mono">Value</div>' +
+        '<div class="step-note-hdr">Carry Event</div>' +
+      '</div>' +
+      '<div class="steps-list">';
+
+    var prevDigits = null;
+    (out.steps || []).forEach(function (stepInfo) {
+      var stepVal = parseInt(stepInfo.value || "0", 10);
+      var isSolved = stepVal === trueSum;
+      var raw = stepInfo.rawDigits || "";
+
+      // Find first non-zero digit to dim leading zeros
+      var firstNonZero = -1;
+      for (var k = 0; k < raw.length; k++) {
+        if (raw[k] !== '0') {
+          firstNonZero = k;
+          break;
+        }
+      }
+      if (firstNonZero === -1) firstNonZero = raw.length - 1;
+
+      var digitSpans = "";
+      for (var d = 0; d < raw.length; d++) {
+        var char = raw[d];
+        var isDiff = prevDigits && prevDigits[d] !== char;
+        var isDimmed = d < firstNonZero;
+        var cls = "digit-char" + (isDimmed ? " dimmed-zero" : "") + (isDiff ? " diff" : "");
+        digitSpans += '<span class="' + cls + '" title="' + COL_NAMES[d] + ' column">' + char + '</span>';
+      }
+
+      var carryNote = getCarryNote(prevDigits, raw, isSolved, stepInfo.step);
+      prevDigits = raw;
+
+      trajectoryHtml +=
+        '<div class="step-row' + (stepInfo.step === r ? ' is-final' : '') + (isSolved ? ' is-solved' : '') + '">' +
+          '<div class="step-meta">' +
+            '<span class="step-badge mono">' + stepInfo.label + '</span>' +
+            '<span class="step-status-icon ' + (isSolved ? 'match' : 'pending') + '">' +
+              (isSolved ? '&#10003; match' : '&bull; pending carry') +
+            '</span>' +
+          '</div>' +
+          '<div class="step-visual mono">' + digitSpans + '</div>' +
+          '<div class="step-num-val mono">' + (stepInfo.value ? Number(stepInfo.value).toLocaleString() : "0") + '</div>' +
+          '<div class="step-note-cell">' + carryNote + '</div>' +
+        '</div>';
+    });
+
+    trajectoryHtml += '</div></div>';
+
+    resultArea.innerHTML = answerBoxHtml + trajectoryHtml;
+    thinkBtn.disabled = false;
+  }
+
+  thinkBtn.addEventListener("click", runDemo);
+
+  document.querySelectorAll(".preset-chip").forEach(function (chip) {
+    chip.addEventListener("click", function () {
+      var a = this.getAttribute("data-a");
+      var b = this.getAttribute("data-b");
+      var r = this.getAttribute("data-r");
+      opA.value = a;
+      opB.value = b;
+      depthSlider.value = r;
+      depthVal.textContent = r;
+      runDemo();
+    });
+  });
+
+  // ---------------- chart ----------------
+  var svg = document.getElementById("chart");
+  var legendEl = document.getElementById("legend");
+  var tooltip = document.getElementById("tooltip");
+  var W = 720, H = 320;
+  var padL = 40, padR = 16, padT = 16, padB = 40;
+  var plotW = W - padL - padR, plotH = H - padT - padB;
+
+  function xPos(i) { return padL + (i / (R_VALUES.length - 1)) * plotW; }
+  function yPos(v) { return padT + (1 - v) * plotH; }
+
+  function svgEl(tag, attrs) {
+    var el = document.createElementNS("http://www.w3.org/2000/svg", tag);
+    for (var k in attrs) el.setAttribute(k, attrs[k]);
+    return el;
+  }
+
+  function buildChart() {
+    svg.innerHTML = "";
+    // gridlines + y labels (0, 25, 50, 75, 100%)
+    [0, 0.25, 0.5, 0.75, 1].forEach(function (v) {
+      var y = yPos(v);
+      svg.appendChild(svgEl("line", { x1: padL, x2: W - padR, y1: y, y2: y, class: "gridline" }));
+      var t = svgEl("text", { x: padL - 8, y: y + 4, "text-anchor": "end" });
+      t.textContent = Math.round(v * 100) + "%";
+      svg.appendChild(t);
+    });
+    // x axis
+    svg.appendChild(svgEl("line", { x1: padL, x2: W - padR, y1: H - padB, y2: H - padB, class: "axis-line" }));
+    R_VALUES.forEach(function (r, i) {
+      var x = xPos(i);
+      var t = svgEl("text", { x: x, y: H - padB + 18, "text-anchor": "middle" });
+      t.textContent = "r=" + r;
+      svg.appendChild(t);
+    });
+    // dashed marker at trained max depth (r=8, index 3)
+    var trainedX = xPos(R_VALUES.indexOf(8));
+    var trainLine = svgEl("line", {
+      x1: trainedX, x2: trainedX, y1: padT, y2: H - padB,
+      stroke: "var(--border)", "stroke-width": 1, "stroke-dasharray": "3,4"
+    });
+    svg.appendChild(trainLine);
+    var trainLabel = svgEl("text", { x: trainedX, y: padT - 4, "text-anchor": "middle" });
+    trainLabel.textContent = "trained \u2264 8";
+    svg.appendChild(trainLabel);
+
+    // lines + markers
+    var hitboxes = [];
+    DIGIT_VALUES.forEach(function (nd) {
+      var color = SEQ_HEX[nd];
+      var pts = R_VALUES.map(function (r, i) { return [xPos(i), yPos(GRID[nd][r])]; });
+      var d = pts.map(function (p, i) { return (i === 0 ? "M" : "L") + p[0].toFixed(1) + " " + p[1].toFixed(1); }).join(" ");
+      svg.appendChild(svgEl("path", { d: d, fill: "none", stroke: color, "stroke-width": 2, "stroke-linecap": "round", "stroke-linejoin": "round" }));
+      pts.forEach(function (p, i) {
+        svg.appendChild(svgEl("circle", { cx: p[0], cy: p[1], r: 5, fill: "var(--surface)", stroke: color, "stroke-width": 2 }));
+        hitboxes.push({ x: p[0], y: p[1], nd: nd, r: R_VALUES[i], val: GRID[nd][R_VALUES[i]], color: color });
+      });
+    });
+
+    // hover layer
+    var overlay = svgEl("rect", { x: padL, y: padT, width: plotW, height: plotH, fill: "transparent" });
+    svg.appendChild(overlay);
+    overlay.addEventListener("mousemove", function (evt) {
+      var rect = svg.getBoundingClientRect();
+      var scale = W / rect.width;
+      var mx = (evt.clientX - rect.left) * scale;
+      var my = (evt.clientY - rect.top) * scale;
+      var best = null, bestDist = Infinity;
+      hitboxes.forEach(function (h) {
+        var dist = Math.hypot(h.x - mx, h.y - my);
+        if (dist < bestDist) { bestDist = dist; best = h; }
+      });
+      if (best && bestDist < 30) {
+        tooltip.style.opacity = 1;
+        tooltip.style.left = (best.x / W) * rect.width + "px";
+        tooltip.style.top = (best.y / H) * rect.height + "px";
+        tooltip.innerHTML = best.nd + "-digit &middot; r=" + best.r + " &rarr; <b>" + Math.round(best.val * 100) + "%</b>";
+      } else {
+        tooltip.style.opacity = 0;
+      }
+    });
+    overlay.addEventListener("mouseleave", function () { tooltip.style.opacity = 0; });
+
+    // legend
+    legendEl.innerHTML = "";
+    DIGIT_VALUES.forEach(function (nd) {
+      var key = document.createElement("span");
+      key.className = "key";
+      key.innerHTML = '<span class="swatch" style="background:' + SEQ_HEX[nd] + '"></span>' + nd + (nd === 1 ? " digit" : " digits");
+      legendEl.appendChild(key);
+    });
+  }
+
+  buildChart();
+  window.addEventListener("resize", function () {});
+})();
+</script>
+</body>
+</html>
